@@ -29,25 +29,40 @@ access_token = res.json()['access_token']
 
 # requesting to get data from activities using the refreshed access key
 header = {'Authorization': 'Bearer ' + access_token}
-param = {'per_page': 10, 'page': 1}
+param = {'per_page': 50, 'page': 1}
 my_dataset = requests.get(activities_url, headers=header, params=param).json()
 
-# print(my_dataset[2]['map']['summary_polyline'])
+# print(my_dataset[2])
 
-polylines = []
+# initialize folium map, set basemap and starting location
+m = folium.Map(tiles='cartodbdark_matter', location=[37.9101, -122.0652])
 
+# loop through the full dataset
 for i in range(len(my_dataset)):
-    route = polyline.decode(my_dataset[i]['map']['summary_polyline'])
-    polylines.append(route)
 
-# print(polylines[0])
+    # Separate runs and rides to give them each different properties
+    if my_dataset[i]["type"] == 'Ride':
+        
+        # the "try" gets around activities that have no polyline
+        # the block decodes the polyline into coordinates, and adds that and the activity name to the map
+        try:
+            route = polyline.decode(my_dataset[i]['map']['summary_polyline'])
+            popup_text = my_dataset[i]['name']
+            popup = folium.Popup(html=popup_text)
+            my_Polyline = folium.PolyLine(locations=route,weight=3, popup=popup,)
+            m.add_child(my_Polyline)
+        except ValueError:
+            print("no polyline")
+    if my_dataset[i]["type"] == 'Run':
+        try:
+            route = polyline.decode(my_dataset[i]['map']['summary_polyline'])
+            popup_text = my_dataset[i]['name']
+            popup = folium.Popup(html=popup_text)
+            my_Polyline = folium.PolyLine(locations=route,weight=3, color="red", popup=popup)
+            m.add_child(my_Polyline)
+        except ValueError:
+            print("no polyline")
 
-m = folium.Map(location=[37.9101, -122.0652])
-
-
-for i in range(len(polylines)):
-    if polylines[i] != None:
-        my_Polyline = folium.PolyLine(locations=polylines[i],weight=3)
-        m.add_child(my_Polyline)
-
+        
+# pushes map to html file where it can be displayed
 m.save(r"C:\Users\KevinJ\Strava_Mapping\index.html")
